@@ -36,6 +36,11 @@ func NewMongoClient(ctx context.Context, c MongoConfig) (*Mongo, error) {
 		return nil, errors.Wrap(err, "failed to initialize persistence client")
 	}
 
+	err = col.Connect(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed connect persistence client")
+	}
+
 	db := col.Database(databaseName)
 
 	return &Mongo{

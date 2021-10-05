@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"net/http"
+	"encoding/json"
 	"os"
 	"os/signal"
 
+	"github.com/pkg/errors"
 	"github.com/sonalys/ddd/application"
 	"github.com/sonalys/ddd/infraestructure/persistence"
 	"github.com/sonalys/ddd/interfaces"
@@ -32,13 +33,27 @@ func main() {
 		panic(err)
 	}
 
-	handler := interfaces.NewRouter(interfaces.Dependency{
-		Cart: cart,
-	})
+	config := new(interfaces.Configuration)
+	err = decodeEnv("ROUTER_CONFIG", config)
+	if err != nil {
+		panic(err)
+	}
 
-	go func() {
-		http.ListenAndServe(":8080", handler)
-	}()
+	handler := interfaces.NewRouter(interfaces.Dependency{
+		Cart:          cart,
+		Configuration: config,
+	})
+	go handler.Start()
+
 	<-stop
 	cancel()
+}
+
+func decodeEnv(name string, dst interface{}) error {
+	val, ok := os.LookupEnv(name)
+	if !ok {
+		return errors.Errorf("env %s not found", name)
+	}
+
+	return json.Unmarshal([]byte(val), dst)
 }
